@@ -65,7 +65,8 @@ export class ConfigSDK {
   constructor(childApi: ChildAPI, eventBus: EventBus) {
     this.parent = childApi;
     this.eventBus = eventBus;
-    this.config = {};
+    // @ts-ignore
+    this.config = childApi.model.config || {};
     this.configWatchers = [];
 
     this.eventBus.pushHandler((event: DashboardEvent) => {
@@ -177,10 +178,13 @@ export const createSDK = async (): Promise<ConfigSDK> => {
   // Create an event bus to handle events
   const bus = new EventBus();
 
-  return new ConfigSDK(await new Postmate.Model({
-    // Declare the "event" API that the dashboard can call to register events
-    event(event: DashboardEvent) {
-      bus.trigger(event);
-    }
-  }), bus);
+  return new ConfigSDK(
+    await new Postmate.Model({
+      // Declare the "event" API that the dashboard can call to register events
+      event(event: DashboardEvent) {
+        bus.trigger(event);
+      }
+    }),
+    bus
+  );
 }
