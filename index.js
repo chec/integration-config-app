@@ -21,7 +21,8 @@ export class ConfigSDK {
     constructor(childApi, eventBus) {
         this.parent = childApi;
         this.eventBus = eventBus;
-        this.config = {};
+        // @ts-ignore
+        this.config = childApi.model.config || {};
         this.configWatchers = [];
         this.eventBus.pushHandler((event) => {
             if (event.event !== 'set-config') {
