@@ -81,12 +81,15 @@ export class ConfigSDK {
   eventBus: EventBus;
   config: Config;
   configWatchers: Array<ConfigWatcher>
+  editMode: boolean
 
   constructor(childApi: ChildAPI, eventBus: EventBus) {
     this.parent = childApi;
     this.eventBus = eventBus;
     // @ts-ignore
     this.config = childApi.model.config || {};
+    // @ts-ignore
+    this.editMode = Boolean(childApi.model.editMode);
     this.configWatchers = [];
 
     this.eventBus.pushHandler((event: DashboardEvent) => {
