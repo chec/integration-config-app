@@ -34,12 +34,12 @@ export interface HtmlSchemaItem<T = Config> {
 }
 
 export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
-  multiselect: boolean
+  multiselect?: boolean
   options: Array<{ value: string, label: string }>
   type: SchemaFieldTypes.Select,
 }
 
-export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>>
+export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>|HtmlSchemaItem<T>>
 
 /**
  * Represents an event relayed to the SDK from the dashboard
