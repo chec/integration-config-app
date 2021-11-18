@@ -1,20 +1,45 @@
 import Postmate, { ChildAPI } from 'postmate';
 
 /**
- * Represents the minimum information required for a field to be displayed in the Chec dashboard
+ * Represents the integration configuration that will eventually be saved against the integration record
  */
-export interface BaseField {
-  key: string,
-  type: string,
-  label: string,
+type Config = object;
+
+export enum SchemaFieldTypes {
+  ShortText = 'short_text',
+  LongText = 'long_text',
+  Number = 'number',
+  Wysiwyg = 'wysiwyg',
+  Boolean = 'boolean',
+  Select = 'select',
+  Button = 'button',
+  Link = 'link',
 }
+
+export interface SchemaItem<T = Config> {
+  default?: string|boolean|number|Array<string>
+  description?: string
+  disabled?: boolean
+  key: keyof T
+  label: string
+  required?: boolean
+  type: SchemaFieldTypes
+}
+
+export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
+  multiselect: boolean
+  options: Array<{ value: string, label: string }>
+  type: SchemaFieldTypes.Select,
+}
+
+export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>>
 
 /**
  * Represents an event relayed to the SDK from the dashboard
  */
-interface DashboardEvent {
+interface DashboardEvent<T = Config> {
   event: string,
-  field: BaseField|null,
+  field: SchemaItem<T>|null,
   payload: any,
 }
 
@@ -43,14 +68,9 @@ class EventBus {
 }
 
 /**
- * Represents the integration configuration that will eventually be saved against the integration record
- */
-export type Config = object;
-
-/**
  * The expected type of handler used when registered events to handle changes in integration configuration
  */
-export type ConfigWatcher = (config: Config) => void;
+type ConfigWatcher<T = Config> = (config: T) => void;
 
 /**
  * Represents a connection with the Chec dashboard when this app is rendered within the Chec dashboard, and provides
@@ -61,12 +81,15 @@ export class ConfigSDK {
   eventBus: EventBus;
   config: Config;
   configWatchers: Array<ConfigWatcher>
+  editMode: boolean
 
   constructor(childApi: ChildAPI, eventBus: EventBus) {
     this.parent = childApi;
     this.eventBus = eventBus;
     // @ts-ignore
     this.config = childApi.model.config || {};
+    // @ts-ignore
+    this.editMode = Boolean(childApi.model.editMode);
     this.configWatchers = [];
 
     this.eventBus.pushHandler((event: DashboardEvent) => {
@@ -165,7 +188,7 @@ export class ConfigSDK {
   /**
    * Update the form schema that the Chec dashboard will use to render a configuration form to the user.
    */
-  setSchema(schema: Array<object>) {
+  setSchema<T = Config>(schema: Schema<T>) {
     this.parent.emit('set-schema', schema);
   }
 }

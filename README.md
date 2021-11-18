@@ -37,7 +37,7 @@ This option does not require your app to product any user interface. Instead, yo
 schema that the Chec Dashboard uses to display a form:
 
 ```ts
-import { createSDK, ConfigSDK } from '@chec/integration-configuration-sdk';
+import { createSDK, SchemaFieldTypes } from '@chec/integration-configuration-sdk';
 
 (async () => {
   const sdk = await createSDK();
@@ -45,7 +45,7 @@ import { createSDK, ConfigSDK } from '@chec/integration-configuration-sdk';
   sdk.setSchema([
     {
       key: 'name',
-      type: 'short_text',
+      type: SchemaFieldTypes.ShortText,
       label: 'Your name',
     },
   ]);
@@ -60,6 +60,8 @@ app. As the user fills in the form, the integration config is updated as usual.
 You can register an event handler that is called when the configuration changes:
 
 ```ts
+import { createSDK } from '@chec/integration-configuration-sdk';
+
 (async () => {
   const sdk = await createSDK();
 
@@ -72,7 +74,7 @@ You can register an event handler that is called when the configuration changes:
 You can render buttons and watch for clicks:
 
 ```ts
-import { createSDK, ConfigSDK } from '@chec/integration-configuration-sdk';
+import { createSDK, SchemaFieldTypes } from '@chec/integration-configuration-sdk';
 
 (async () => {
   const sdk = await createSDK();
@@ -80,7 +82,7 @@ import { createSDK, ConfigSDK } from '@chec/integration-configuration-sdk';
   sdk.setSchema([
     {
       key: 'my_button',
-      type: 'button',
+      type: SchemaFieldTypes.Button,
       label: 'Click me',
     },
   ]);
@@ -95,6 +97,8 @@ You can also set config attributes directly using `setConfig`. Configuration set
 configuration.
 
 ```ts
+import { createSDK } from '@chec/integration-configuration-sdk';
+
 (async () => {
   const sdk = await createSDK();
 
@@ -103,6 +107,57 @@ configuration.
   });
 })();
 ```
+
+#### Using typescript to ensure form schema matches configuration
+
+This SDK provides types for form schema to help create valid form schemas for the Chec Dashboard. Additionally, you can
+provide a type definition for your configuration to perform type checking on the schema to ensure it matches the
+configuration you're expecting. For example, say you want to configure your integration with the following config:
+
+```ts
+export default interface MyIntegrationConfiguration {
+  customerMessage: string
+}
+```
+
+You may choose to create this in it's own file at the root of the project so it can be shared by the configuration app
+and the integration, that will have access to the config with `(await context.integration()).config`.
+
+Then you can create a schema like so:
+
+```ts
+import { Schema, SchemaFieldTypes } from '@chec/integration-configuration-sdk';
+import MyIntegrationConfiguration from '../config';
+
+const schema: Schema<MyIntegrationConfiguration> = [
+  {
+    key: 'customerMessage',
+    label: 'Message to display to the customer',
+    type: SchemaFieldTypes.ShortText,
+  }
+];
+```
+
+Typescript with throw an error if the value for `key` does not exist in your configuration interface, avoiding potential
+typos and mistakes. Additionally, you can ensure the schema matches your configuration only when you set it:
+
+```ts
+import { createSDK } from '@chec/integration-configuration-sdk';
+import MyIntegrationConfiguration from '../config';
+
+(async () => {
+  const sdk = await createSDK();
+
+  sdk.setSchema<MyIntegrationConfiguration>([
+    {
+      key: 'customerMessage',
+      label: 'Message to display to the customer',
+      type: SchemaFieldTypes.ShortText,
+    }
+  ]);
+})();
+```
+
 
 ### "Frame" option
 

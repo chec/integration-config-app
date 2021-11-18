@@ -1,4 +1,15 @@
 import Postmate from 'postmate';
+export var SchemaFieldTypes;
+(function (SchemaFieldTypes) {
+    SchemaFieldTypes["ShortText"] = "short_text";
+    SchemaFieldTypes["LongText"] = "long_text";
+    SchemaFieldTypes["Number"] = "number";
+    SchemaFieldTypes["Wysiwyg"] = "wysiwyg";
+    SchemaFieldTypes["Boolean"] = "boolean";
+    SchemaFieldTypes["Select"] = "select";
+    SchemaFieldTypes["Button"] = "button";
+    SchemaFieldTypes["Link"] = "link";
+})(SchemaFieldTypes || (SchemaFieldTypes = {}));
 /**
  * Manages events broadcast from the dashboard and allows for attaching handlers to trigger from those events
  */
