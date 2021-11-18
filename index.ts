@@ -14,6 +14,9 @@ export enum SchemaFieldTypes {
   Select = 'select',
   Button = 'button',
   Link = 'link',
+  ApiKey = 'api_key',
+  Html = 'html',
+  Password = 'Password',
 }
 
 export interface SchemaItem<T = Config> {
@@ -24,6 +27,10 @@ export interface SchemaItem<T = Config> {
   label: string
   required?: boolean
   type: SchemaFieldTypes
+}
+export interface HtmlSchemaItem<T = Config> {
+  content: string
+  type: SchemaFieldTypes.Html
 }
 
 export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
