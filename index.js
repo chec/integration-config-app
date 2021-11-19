@@ -11,7 +11,7 @@ export var SchemaFieldTypes;
     SchemaFieldTypes["Link"] = "link";
     SchemaFieldTypes["ApiKey"] = "api_key";
     SchemaFieldTypes["Html"] = "html";
-    SchemaFieldTypes["Password"] = "password";
+    SchemaFieldTypes["Password"] = "Password";
 })(SchemaFieldTypes || (SchemaFieldTypes = {}));
 /**
  * Manages events broadcast from the dashboard and allows for attaching handlers to trigger from those events
@@ -35,7 +35,10 @@ export class ConfigSDK {
     constructor(childApi, eventBus) {
         this.parent = childApi;
         this.eventBus = eventBus;
-        this.config = {};
+        // @ts-ignore
+        this.config = childApi.model.config || {};
+        // @ts-ignore
+        this.editMode = Boolean(childApi.model.editMode);
         this.configWatchers = [];
         this.eventBus.pushHandler((event) => {
             if (event.event !== 'set-config') {
