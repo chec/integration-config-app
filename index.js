@@ -9,6 +9,9 @@ export var SchemaFieldTypes;
     SchemaFieldTypes["Select"] = "select";
     SchemaFieldTypes["Button"] = "button";
     SchemaFieldTypes["Link"] = "link";
+    SchemaFieldTypes["ApiKey"] = "api_key";
+    SchemaFieldTypes["Html"] = "html";
+    SchemaFieldTypes["Password"] = "password";
 })(SchemaFieldTypes || (SchemaFieldTypes = {}));
 /**
  * Manages events broadcast from the dashboard and allows for attaching handlers to trigger from those events

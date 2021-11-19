@@ -14,6 +14,9 @@ export enum SchemaFieldTypes {
   Select = 'select',
   Button = 'button',
   Link = 'link',
+  ApiKey = 'api_key',
+  Html = 'html',
+  Password = 'Password',
 }
 
 export interface SchemaItem<T = Config> {
@@ -25,14 +28,18 @@ export interface SchemaItem<T = Config> {
   required?: boolean
   type: SchemaFieldTypes
 }
+export interface HtmlSchemaItem<T = Config> {
+  content: string
+  type: SchemaFieldTypes.Html
+}
 
 export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
-  multiselect: boolean
+  multiselect?: boolean
   options: Array<{ value: string, label: string }>
   type: SchemaFieldTypes.Select,
 }
 
-export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>>
+export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>|HtmlSchemaItem<T>>
 
 /**
  * Represents an event relayed to the SDK from the dashboard
