@@ -146,9 +146,9 @@ import { createSDK } from '@chec/integration-configuration-sdk';
 import MyIntegrationConfiguration from '../config';
 
 (async () => {
-  const sdk = await createSDK();
+  const sdk = await createSDK<MyIntegrationConfiguration>();
 
-  sdk.setSchema<MyIntegrationConfiguration>([
+  sdk.setSchema([
     {
       key: 'customerMessage',
       label: 'Message to display to the customer',

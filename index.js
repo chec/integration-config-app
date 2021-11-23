@@ -35,11 +35,14 @@ export class ConfigSDK {
     constructor(childApi, eventBus) {
         this.parent = childApi;
         this.eventBus = eventBus;
+        this.configWatchers = [];
+        // Fill in some defaults provided by the dashboard through Postmate. The ts-ignores are here as the Postmate types
+        // provided by the community don't include a definition for `childApi.model`, maybe because it's not completely
+        // clear if this is intended to be a public API by Postmate.
         // @ts-ignore
         this.config = childApi.model.config || {};
         // @ts-ignore
         this.editMode = Boolean(childApi.model.editMode);
-        this.configWatchers = [];
         this.eventBus.pushHandler((event) => {
             if (event.event !== 'set-config') {
                 return;
@@ -120,6 +123,9 @@ export class ConfigSDK {
     }
     /**
      * Update the form schema that the Chec dashboard will use to render a configuration form to the user.
+     *
+     * This function is implemented as a typescript generic to facilitate type safety on just this function, if using the
+     * default generic definition of this class.
      */
     setSchema(schema) {
         this.parent.emit('set-schema', schema);
@@ -129,7 +135,7 @@ export class ConfigSDK {
  * Establish a connection to the Chec dashboard, and return an instance of the ConfigSDK class to provide API to
  * communicate with the dashboard.
  */
-export const createSDK = async () => {
+export async function createSDK() {
     // Create an event bus to handle events
     const bus = new EventBus();
     return new ConfigSDK(await new Postmate.Model({
@@ -138,4 +144,4 @@ export const createSDK = async () => {
             bus.trigger(event);
         }
     }), bus);
-};
+}
