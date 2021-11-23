@@ -3,7 +3,7 @@ import Postmate, { ChildAPI } from 'postmate';
 /**
  * Represents the integration configuration that will eventually be saved against the integration record
  */
-type Config = object;
+type Config = { [key: string]: any };
 
 export enum SchemaFieldTypes {
   ShortText = 'short_text',
@@ -39,7 +39,14 @@ export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
   type: SchemaFieldTypes.Select,
 }
 
-export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>|HtmlSchemaItem<T>>
+export interface SubSchemaItem<T extends Config = Config, K extends keyof T = string> {
+  key: K
+  label: string
+  description?: string
+  schema: Schema<T[K]>
+}
+
+export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>|HtmlSchemaItem<T>|SubSchemaItem<T>>
 
 /**
  * Represents an event relayed to the SDK from the dashboard
