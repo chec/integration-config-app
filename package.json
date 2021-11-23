@@ -4,6 +4,9 @@
   "version": "0.0.4",
   "main": "index.js",
   "license": "BSD-3-Clause",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "postmate": "^1.5.2",
     "typescript": "^4.4.4"

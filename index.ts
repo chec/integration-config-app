@@ -83,21 +83,25 @@ type ConfigWatcher<T = Config> = (config: T) => void;
  * Represents a connection with the Chec dashboard when this app is rendered within the Chec dashboard, and provides
  * API to community with the dashboard.
  */
-export class ConfigSDK {
+export class ConfigSDK<T = Config> {
   parent: ChildAPI;
   eventBus: EventBus;
-  config: Config;
-  configWatchers: Array<ConfigWatcher>
+  config: T;
+  configWatchers: Array<ConfigWatcher<T>>
   editMode: boolean
 
   constructor(childApi: ChildAPI, eventBus: EventBus) {
     this.parent = childApi;
     this.eventBus = eventBus;
+    this.configWatchers = [];
+
+    // Fill in some defaults provided by the dashboard through Postmate. The ts-ignores are here as the Postmate types
+    // provided by the community don't include a definition for `childApi.model`, maybe because it's not completely
+    // clear if this is intended to be a public API by Postmate.
     // @ts-ignore
     this.config = childApi.model.config || {};
     // @ts-ignore
     this.editMode = Boolean(childApi.model.editMode);
-    this.configWatchers = [];
 
     this.eventBus.pushHandler((event: DashboardEvent) => {
       if (event.event !== 'set-config') {
@@ -145,7 +149,7 @@ export class ConfigSDK {
   /**
    * Get the current config set by the user in the dashboard
    */
-  getConfig() {
+  getConfig(): T {
     return this.config;
   }
 
@@ -171,7 +175,7 @@ export class ConfigSDK {
   /**
    * Register a function to run when configuration changes
    */
-  onConfigUpdate(handler: ConfigWatcher) {
+  onConfigUpdate(handler: ConfigWatcher<T>) {
     this.configWatchers.push(handler);
   }
 
@@ -188,14 +192,17 @@ export class ConfigSDK {
    *
    * Note the configuration is not deeply merged.
    */
-  setConfig(config: object) {
+  setConfig(config: T) {
     this.parent.emit('save', config);
   }
 
   /**
    * Update the form schema that the Chec dashboard will use to render a configuration form to the user.
+   *
+   * This function is implemented as a typescript generic to facilitate type safety on just this function, if using the
+   * default generic definition of this class.
    */
-  setSchema<T = Config>(schema: Schema<T>) {
+  setSchema<OverrideType = T>(schema: Schema<OverrideType>) {
     this.parent.emit('set-schema', schema);
   }
 }
@@ -204,7 +211,7 @@ export class ConfigSDK {
  * Establish a connection to the Chec dashboard, and return an instance of the ConfigSDK class to provide API to
  * communicate with the dashboard.
  */
-export const createSDK = async (): Promise<ConfigSDK> => {
+export async function createSDK<T = Config>(): Promise<ConfigSDK<T>> {
   // Create an event bus to handle events
   const bus = new EventBus();
 
