@@ -1,7 +1,7 @@
 {
   "name": "@chec/integration-configuration-sdk",
   "repository": "https://github.com/chec/integration-configuration-sdk",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "index.js",
   "license": "BSD-3-Clause",
   "scripts": {
