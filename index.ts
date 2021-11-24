@@ -5,6 +5,21 @@ import Postmate, { ChildAPI } from 'postmate';
  */
 type Config = { [key: string]: any };
 
+
+/**
+ * Creates a type from a config type that removes any keys that don't have object type definitions, essentially just
+ * leaving keys that contain sub-schemas
+ */
+type ConfigObjectTypes<T> = {
+  [K in keyof T]: T[K] extends Config ? T[K] : never
+};
+
+/**
+ * Extract keys of a given union type into a single type. This powers the `key` part of a schema definition, where the
+ * "type" is essentially just an enum generated from the object keys of the configuration.
+ */
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+
 export enum SchemaFieldTypes {
   ShortText = 'short_text',
   LongText = 'long_text',
@@ -23,11 +38,12 @@ export interface SchemaItem<T = Config> {
   default?: string|boolean|number|Array<string>
   description?: string
   disabled?: boolean
-  key: keyof T
+  key: KeysOfUnion<T>
   label: string
   required?: boolean
   type: SchemaFieldTypes
 }
+
 export interface HtmlSchemaItem<T = Config> {
   content: string
   type: SchemaFieldTypes.Html
@@ -39,11 +55,11 @@ export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
   type: SchemaFieldTypes.Select,
 }
 
-export interface SubSchemaItem<T extends Config = Config, K extends keyof T = string> {
-  key: K
+export interface SubSchemaItem<T = Config> {
+  key: KeysOfUnion<T>
   label: string
   description?: string
-  schema: Schema<T[K]>
+  schema: Schema<ConfigObjectTypes<T>[keyof T]>
 }
 
 export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>|HtmlSchemaItem<T>|SubSchemaItem<T>>
@@ -209,7 +225,7 @@ export class ConfigSDK<T = Config> {
    * This function is implemented as a typescript generic to facilitate type safety on just this function, if using the
    * default generic definition of this class.
    */
-  setSchema<OverrideType = T>(schema: Schema<OverrideType>) {
+  setSchema<OverrideType extends T>(schema: Schema<OverrideType>) {
     this.parent.emit('set-schema', schema);
   }
 }
