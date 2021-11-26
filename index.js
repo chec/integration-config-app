@@ -36,13 +36,10 @@ export class ConfigSDK {
         this.parent = childApi;
         this.eventBus = eventBus;
         this.configWatchers = [];
-        // Fill in some defaults provided by the dashboard through Postmate. The ts-ignores are here as the Postmate types
-        // provided by the community don't include a definition for `childApi.model`, maybe because it's not completely
-        // clear if this is intended to be a public API by Postmate.
-        // @ts-ignore
+        // Fill in some defaults provided by the dashboard through Postmate.
         this.config = childApi.model.config || {};
-        // @ts-ignore
         this.editMode = Boolean(childApi.model.editMode);
+        this.template = childApi.model.code;
         this.eventBus.pushHandler((event) => {
             if (event.event !== 'set-config') {
                 return;
@@ -64,7 +61,9 @@ export class ConfigSDK {
         // Extract height calculation logic into a reusable closure
         const calculateHeight = () => {
             const rect = document.body.getBoundingClientRect();
-            return rect.y + rect.height;
+            // Assume top margins match bottom margins. This isn't ideal but getting the real height of the contents of the
+            // document body is very non-trivial
+            return (2 * rect.y) + rect.height;
         };
         // Create a resize observer to watch changes in body height
         const observer = new ResizeObserver(() => {
@@ -130,18 +129,27 @@ export class ConfigSDK {
     setSchema(schema) {
         this.parent.emit('set-schema', schema);
     }
+    /**
+     * Indicate that the integration is savable in the current state.
+     *
+     * @param savable
+     */
+    setSavable(savable) {
+        this.parent.emit('set-savable', savable);
+    }
 }
 /**
  * Establish a connection to the Chec dashboard, and return an instance of the ConfigSDK class to provide API to
  * communicate with the dashboard.
  */
-export async function createSDK() {
+export async function createSDK(savable = true) {
     // Create an event bus to handle events
     const bus = new EventBus();
     return new ConfigSDK(await new Postmate.Model({
         // Declare the "event" API that the dashboard can call to register events
         event(event) {
             bus.trigger(event);
-        }
+        },
+        savable,
     }), bus);
 }

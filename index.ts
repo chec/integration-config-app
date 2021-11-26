@@ -5,7 +5,6 @@ import Postmate, { ChildAPI } from 'postmate';
  */
 type Config = { [key: string]: any };
 
-
 /**
  * Creates a type from a config type that removes any keys that don't have object type definitions, essentially just
  * leaving keys that contain sub-schemas
@@ -34,42 +33,72 @@ export enum SchemaFieldTypes {
   Password = 'Password',
 }
 
-export interface SchemaItem<T = Config> {
-  default?: string|boolean|number|Array<string>
+interface KeyableSchemaItem<T = Config> {
+  key: KeysOfUnion<T>
+}
+
+interface InputSchemaItem<InputType, T = Config> extends KeyableSchemaItem<T> {
+  default?: InputType
   description?: string
   disabled?: boolean
-  key: KeysOfUnion<T>
   label: string
   required?: boolean
-  type: SchemaFieldTypes
+}
+
+export interface TextSchemaItem<T = Config> extends InputSchemaItem<string, T> {
+  type: SchemaFieldTypes.ShortText | SchemaFieldTypes.LongText | SchemaFieldTypes.Wysiwyg | SchemaFieldTypes.ApiKey | SchemaFieldTypes.Password
+}
+
+export interface NumberSchemaItem<T = Config> extends InputSchemaItem<number, T> {
+  type: SchemaFieldTypes.Number,
+}
+
+export interface BooleanSchemaItem<T = Config> extends InputSchemaItem<boolean, T> {
+  type: SchemaFieldTypes.Boolean,
 }
 
 export interface HtmlSchemaItem<T = Config> {
-  content: string
   type: SchemaFieldTypes.Html
+  content: string
 }
 
-export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
+export interface ButtonSchemaItem {
+  type: SchemaFieldTypes.Button
+  // Note that "key" here does not reference a key in config like other items, but is given in an event payload
+  key: string
+  label: string
+  disabled?: boolean
+}
+
+export interface LinkSchemaItem {
+  type: SchemaFieldTypes.Link
+  label: string
+  href: string
+}
+
+export interface SelectSchemaItem<T = Config> extends InputSchemaItem<string | Array<string>, T> {
+  type: SchemaFieldTypes.Select,
   multiselect?: boolean
   options: Array<{ value: string, label: string }>
-  type: SchemaFieldTypes.Select,
 }
 
-export interface SubSchemaItem<T = Config> {
-  key: KeysOfUnion<T>
+export interface SubSchemaItem<T = Config> extends KeyableSchemaItem<T> {
   label: string
   description?: string
   schema: Schema<ConfigObjectTypes<T>[keyof T]>
 }
 
-export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>|HtmlSchemaItem<T>|SubSchemaItem<T>>
+export type UsableSchemaItems = TextSchemaItem | NumberSchemaItem | BooleanSchemaItem | HtmlSchemaItem
+  | ButtonSchemaItem | LinkSchemaItem | SelectSchemaItem | SubSchemaItem;
+
+export type Schema<T = Config> = Array<UsableSchemaItems>
 
 /**
  * Represents an event relayed to the SDK from the dashboard
  */
 interface DashboardEvent<T = Config> {
   event: string,
-  field: SchemaItem<T>|null,
+  field: KeyableSchemaItem<T> | ButtonSchemaItem | null,
   payload: any,
 }
 
@@ -103,28 +132,38 @@ class EventBus {
 type ConfigWatcher<T = Config> = (config: T) => void;
 
 /**
+ * Extends the types provided by the 3rd party type definitions as they don't include a definition for `childApi.model`,
+ * maybe because it's not completely clear if this is intended to be a public API by Postmate.
+ */
+interface ModelledChildApi<T> extends ChildAPI {
+  model: {
+    config?: T
+    editMode: boolean,
+    code: string,
+  }
+}
+
+/**
  * Represents a connection with the Chec dashboard when this app is rendered within the Chec dashboard, and provides
  * API to community with the dashboard.
  */
 export class ConfigSDK<T = Config> {
-  parent: ChildAPI;
+  parent: ModelledChildApi<T>;
   eventBus: EventBus;
   config: T;
   configWatchers: Array<ConfigWatcher<T>>
   editMode: boolean
+  template: string
 
-  constructor(childApi: ChildAPI, eventBus: EventBus) {
+  constructor(childApi: ModelledChildApi<T>, eventBus: EventBus) {
     this.parent = childApi;
     this.eventBus = eventBus;
     this.configWatchers = [];
 
-    // Fill in some defaults provided by the dashboard through Postmate. The ts-ignores are here as the Postmate types
-    // provided by the community don't include a definition for `childApi.model`, maybe because it's not completely
-    // clear if this is intended to be a public API by Postmate.
-    // @ts-ignore
-    this.config = childApi.model.config || {};
-    // @ts-ignore
+    // Fill in some defaults provided by the dashboard through Postmate.
+    this.config = childApi.model.config || {} as T;
     this.editMode = Boolean(childApi.model.editMode);
+    this.template = childApi.model.code;
 
     this.eventBus.pushHandler((event: DashboardEvent) => {
       if (event.event !== 'set-config') {
@@ -151,7 +190,9 @@ export class ConfigSDK<T = Config> {
     // Extract height calculation logic into a reusable closure
     const calculateHeight = () => {
       const rect = document.body.getBoundingClientRect();
-      return rect.y + rect.height;
+      // Assume top margins match bottom margins. This isn't ideal but getting the real height of the contents of the
+      // document body is very non-trivial
+      return (2 * rect.y) + rect.height;
     }
 
     // Create a resize observer to watch changes in body height
@@ -215,7 +256,7 @@ export class ConfigSDK<T = Config> {
    *
    * Note the configuration is not deeply merged.
    */
-  setConfig(config: T) {
+  setConfig(config: T): void {
     this.parent.emit('save', config);
   }
 
@@ -225,8 +266,17 @@ export class ConfigSDK<T = Config> {
    * This function is implemented as a typescript generic to facilitate type safety on just this function, if using the
    * default generic definition of this class.
    */
-  setSchema<OverrideType extends T>(schema: Schema<OverrideType>) {
+  setSchema<OverrideType extends T>(schema: Schema<OverrideType>): void {
     this.parent.emit('set-schema', schema);
+  }
+
+  /**
+   * Indicate that the integration is savable in the current state.
+   *
+   * @param savable
+   */
+  setSavable(savable: boolean): void {
+    this.parent.emit('set-savable', savable);
   }
 }
 
@@ -234,7 +284,7 @@ export class ConfigSDK<T = Config> {
  * Establish a connection to the Chec dashboard, and return an instance of the ConfigSDK class to provide API to
  * communicate with the dashboard.
  */
-export async function createSDK<T = Config>(): Promise<ConfigSDK<T>> {
+export async function createSDK<T = Config>(savable: boolean = true): Promise<ConfigSDK<T>> {
   // Create an event bus to handle events
   const bus = new EventBus();
 
@@ -243,8 +293,9 @@ export async function createSDK<T = Config>(): Promise<ConfigSDK<T>> {
       // Declare the "event" API that the dashboard can call to register events
       event(event: DashboardEvent) {
         bus.trigger(event);
-      }
-    }),
+      },
+      savable,
+    }) as ModelledChildApi<T>,
     bus
   );
 }
