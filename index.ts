@@ -5,7 +5,6 @@ import Postmate, { ChildAPI } from 'postmate';
  */
 type Config = { [key: string]: any };
 
-
 /**
  * Creates a type from a config type that removes any keys that don't have object type definitions, essentially just
  * leaving keys that contain sub-schemas
@@ -34,42 +33,72 @@ export enum SchemaFieldTypes {
   Password = 'Password',
 }
 
-export interface SchemaItem<T = Config> {
-  default?: string|boolean|number|Array<string>
+interface KeyableSchemaItem<T = Config> {
+  key: KeysOfUnion<T>
+}
+
+interface InputSchemaItem<InputType, T = Config> extends KeyableSchemaItem<T> {
+  default?: InputType
   description?: string
   disabled?: boolean
-  key: KeysOfUnion<T>
   label: string
   required?: boolean
-  type: SchemaFieldTypes
+}
+
+export interface TextSchemaItem<T = Config> extends InputSchemaItem<string, T> {
+  type: SchemaFieldTypes.ShortText | SchemaFieldTypes.LongText | SchemaFieldTypes.Wysiwyg | SchemaFieldTypes.ApiKey | SchemaFieldTypes.Password
+}
+
+export interface NumberSchemaItem<T = Config> extends InputSchemaItem<number, T> {
+  type: SchemaFieldTypes.Number,
+}
+
+export interface BooleanSchemaItem<T = Config> extends InputSchemaItem<boolean, T> {
+  type: SchemaFieldTypes.Boolean,
 }
 
 export interface HtmlSchemaItem<T = Config> {
-  content: string
   type: SchemaFieldTypes.Html
+  content: string
 }
 
-export interface SelectSchemaItem<T = Config> extends SchemaItem<T> {
+export interface ButtonSchemaItem {
+  type: SchemaFieldTypes.Button
+  // Note that "key" here does not reference a key in config like other items, but is given in an event payload
+  key: string
+  label: string
+  disabled?: boolean
+}
+
+export interface LinkSchemaItem {
+  type: SchemaFieldTypes.Link
+  label: string
+  href: string
+}
+
+export interface SelectSchemaItem<T = Config> extends InputSchemaItem<string | Array<string>, T> {
+  type: SchemaFieldTypes.Select,
   multiselect?: boolean
   options: Array<{ value: string, label: string }>
-  type: SchemaFieldTypes.Select,
 }
 
-export interface SubSchemaItem<T = Config> {
-  key: KeysOfUnion<T>
+export interface SubSchemaItem<T = Config> extends KeyableSchemaItem<T> {
   label: string
   description?: string
   schema: Schema<ConfigObjectTypes<T>[keyof T]>
 }
 
-export type Schema<T = Config> = Array<SchemaItem<T>|SelectSchemaItem<T>|HtmlSchemaItem<T>|SubSchemaItem<T>>
+export type UsableSchemaItems = TextSchemaItem | NumberSchemaItem | BooleanSchemaItem | HtmlSchemaItem
+  | ButtonSchemaItem | LinkSchemaItem | SelectSchemaItem | SubSchemaItem;
+
+export type Schema<T = Config> = Array<UsableSchemaItems>
 
 /**
  * Represents an event relayed to the SDK from the dashboard
  */
 interface DashboardEvent<T = Config> {
   event: string,
-  field: SchemaItem<T>|null,
+  field: KeyableSchemaItem<T> | ButtonSchemaItem | null,
   payload: any,
 }
 
@@ -215,7 +244,7 @@ export class ConfigSDK<T = Config> {
    *
    * Note the configuration is not deeply merged.
    */
-  setConfig(config: T) {
+  setConfig(config: T): void {
     this.parent.emit('save', config);
   }
 
@@ -225,7 +254,7 @@ export class ConfigSDK<T = Config> {
    * This function is implemented as a typescript generic to facilitate type safety on just this function, if using the
    * default generic definition of this class.
    */
-  setSchema<OverrideType extends T>(schema: Schema<OverrideType>) {
+  setSchema<OverrideType extends T>(schema: Schema<OverrideType>): void {
     this.parent.emit('set-schema', schema);
   }
 }
