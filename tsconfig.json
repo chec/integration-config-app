@@ -5,9 +5,12 @@
     "lib": [
       "DOM", "DOM.Iterable", "ES2020"
     ],
+    "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true
   }
 }

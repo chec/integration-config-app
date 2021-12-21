@@ -1,0 +1,16 @@
+name: Buildable
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+          registry-url: 'https://registry.npmjs.org'
+      - run: yarn install
+      - name: Check that TypeScript compilation does not error
+        run: yarn build --noEmit
