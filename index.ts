@@ -257,7 +257,28 @@ export class ConfigSDK<T = Config> {
    * Note the configuration is not deeply merged.
    */
   setConfig(config: T): void {
-    this.parent.emit('save', config);
+    this.parent.emit('update-config', config);
+  }
+
+  /**
+   * Triggers a save of the integration when the integration already exists (and the user is editing configuration).
+   * Note that this should only be used after a process that implies that the integration is already saved, like
+   * authentication with a popup window (e.g. oAuth). The user should still expect to use the save button after filling
+   * in a form for a consistent UX
+   */
+  save(): void {
+    if (!this.editMode) {
+      return;
+    }
+
+    this.parent.emit('save');
+  }
+
+  /**
+   * Register the external ID for the integration, which can be used to filter integrations when using the Chec API.
+   */
+  setExternalId(id: string): void {
+    this.parent.emit('set-external-id', id);
   }
 
   /**
